@@ -113,6 +113,7 @@
             width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 6px; font-family: var(--font-main);
         }
         .submit-btn { background-color: var(--primary-cyan); color: white; width: 100%; font-size: 1.1rem; }
+        .submit-btn:disabled { background-color: #ccc; cursor: not-allowed; }
 
         footer { background: var(--dark-cyan); color: white; text-align: center; padding: 40px; }
 
@@ -175,6 +176,10 @@
                 <div class="criminal-card" data-aos="flip-left" data-aos-delay="200">
                     <div class="criminal-img-box"><img src="https://imgur.com/jOR82dZ.png"></div>
                     <div class="criminal-name">Pets & The Orb</div>
+                </div>
+                <div class="criminal-card" data-aos="flip-left" data-aos-delay="300">
+                    <div class="criminal-img-box"><img src="https://imgur.com/F0gEHPy.png"></div>
+                    <div class="criminal-name">Michael Umbra</div>
                 </div>
             </div>
         </div>
@@ -245,19 +250,58 @@
 
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
+            
+            // Gather values
+            const name = document.getElementById('formName').value;
+            const user = document.getElementById('formUser').value;
+            const intent = document.getElementById('formIntent').value;
+
             submitBtn.disabled = true;
             submitBtn.innerText = "Processing...";
+            
             try {
+                // 1. Save to Firebase
                 await addDoc(collection(db, "applications"), {
-                    rpName: document.getElementById('formName').value,
-                    mcUser: document.getElementById('formUser').value,
-                    intentions: document.getElementById('formIntent').value,
+                    rpName: name,
+                    mcUser: user,
+                    intentions: intent,
                     timestamp: serverTimestamp()
                 });
-                alert("Application submitted to the High Council.");
+
+                // 2. Send to Discord (RESTORED LOGIC)
+                const webhookURL = "https://discord.com/api/webhooks/1457467452324581639/QW0l0fAO4c6ZWtC1ryABffODPxFGyQ94BbItZcyzm9m-PgvPkkq7pSUU61AiCG_-UbD0";
+                
+                const discordPayload = {
+                    username: "Selentia Immigration Bureau",
+                    avatar_url: "https://i.imgur.com/in57juC.png",
+                    embeds: [{
+                        title: "📜 New Citizenship Application",
+                        color: 1752220,
+                        fields: [
+                            { name: "RP Character Name", value: name, inline: true },
+                            { name: "MC Username", value: user, inline: true },
+                            { name: "Intentions", value: intent }
+                        ],
+                        footer: { text: "Selentia Records Department" },
+                        timestamp: new Date().toISOString()
+                    }]
+                };
+
+                await fetch(webhookURL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(discordPayload)
+                });
+
+                alert("Success! Application submitted to the High Council.");
                 form.reset();
-            } catch (e) { alert("Comms failure. Government unreachable."); }
-            finally { submitBtn.disabled = false; submitBtn.innerText = "Submit to Government"; }
+            } catch (error) { 
+                console.error("Error:", error);
+                alert("Comms failure. Government unreachable."); 
+            } finally { 
+                submitBtn.disabled = false; 
+                submitBtn.innerText = "Submit to Government"; 
+            }
         });
 
         // --- CONTINUOUS ECONOMY ENGINE v7.6 ---
@@ -289,7 +333,9 @@
                 color: "#666666",
                 baseReserves: 25,
                 growthRate: 0.04,
-                modifiers: [{ type: 'trend', date: '2026-01-15', newRate: 0.25 }]
+                modifiers: [{ type: 'trend', date: '2026-01-15', newRate: 0.25 },
+                    { type: 'drop', date: '2026-02-01', value: 0.05 },
+                ]
             },
             argoton: {
                 name: "Dictatorial Ownership of Argoton",
@@ -400,4 +446,3 @@
     </script>
 </body>
 </html>
-
